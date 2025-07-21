@@ -1,22 +1,42 @@
 {
-  "name": "koishi-plugin-tieba-parser",
-  "description": "tieba",
-  "version": "0.0.1",
+  "name": "koishi-plugin-tieba-parse",
+  "version": "0.1.0",
+  "description": "一个用于解析百度贴吧链接，并生成帖子截图、提取内容的 Koishi 插件。",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
     "lib",
     "dist"
   ],
+  "author": {
+    "name": "WhiteBr1ck",
+    "url": "https://github.com/WhiteBr1ck"
+  },
   "license": "MIT",
-  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WhiteBr1ck/koishi-plugin-tieba-parse.git"
+  },
   "keywords": [
-    "chatbot",
     "koishi",
-    "plugin"
+    "plugin",
+    "tieba",
+    "贴吧",
+    "百度",
+    "parse",
+    "screenshot",
+    "截图",
+    "解析"
   ],
-  "devDependencies": {},
   "peerDependencies": {
-    "koishi": "^4.18.7"
+    "koishi": "^4.0.0",
+    "koishi-plugin-puppeteer": "*"
+  },
+  "koishi": {
+    "service": {
+      "required": [
+        "puppeteer"
+      ]
+    }
   }
 }
