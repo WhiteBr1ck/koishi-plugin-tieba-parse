@@ -1,6 +1,8 @@
 lib
 dist
 external
+.claude
+CLAUDE.md
 
 node_modules
 npm-debug.log
