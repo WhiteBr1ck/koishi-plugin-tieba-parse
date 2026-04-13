@@ -181,31 +181,11 @@ async function detectFrontend(page: Page): Promise<ResolvedFrontend | null> {
 
 async function clickIconTarget(page: Page, iconId: string, logger: ReturnType<Context['logger']>, debugMode: boolean) {
   const target = await page.evaluate((iconId) => {
-    const isVisible = (element: Element | null) => {
-      if (!element) return false
-      const rect = element.getBoundingClientRect()
-      const style = window.getComputedStyle(element)
-      return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none'
-    }
+    const uses = Array.from(document.querySelectorAll('use')).filter((node) => {
+      return node.getAttribute('xlink:href') === `#${iconId}` || node.getAttribute('href') === `#${iconId}`
+    })
 
-    const isInteractive = (element: Element) => {
-      if (element instanceof HTMLButtonElement || element instanceof HTMLAnchorElement) return true
-      const role = element.getAttribute('role')
-      if (role === 'button' || role === 'menuitem' || role === 'link') return true
-      if (element.hasAttribute('onclick') || element.getAttribute('tabindex') !== null) return true
-      return window.getComputedStyle(element).cursor === 'pointer'
-    }
-
-    const normalizeUrl = (value: string | null) => {
-      if (!value) return ''
-      try {
-        return new URL(value, location.href).href
-      } catch {
-        return value
-      }
-    }
-
-    const pickTarget = (use: Element) => {
+    for (const use of uses) {
       const preferred = [
         use.closest('button, a, [role="button"], [role="menuitem"], [role="link"], .menu-item, .menu-item-content, .more-btn, .operate-btn, li'),
       ].filter(Boolean) as Element[]
@@ -220,39 +200,46 @@ async function clickIconTarget(page: Page, iconId: string, logger: ReturnType<Co
       for (const candidate of preferred) {
         if (seen.has(candidate)) continue
         seen.add(candidate)
-        if (!isVisible(candidate)) continue
 
         const rect = candidate.getBoundingClientRect()
+        const style = window.getComputedStyle(candidate)
         if (rect.width <= 0 || rect.height <= 0) continue
+        if (style.visibility === 'hidden' || style.display === 'none') continue
 
         const rawHref = candidate instanceof HTMLAnchorElement
           ? candidate.href
           : candidate.getAttribute('href') || candidate.getAttribute('data-href') || candidate.getAttribute('data-url')
 
-        if (!isInteractive(candidate) && !rawHref) continue
+        const role = candidate.getAttribute('role')
+        const interactive = candidate instanceof HTMLButtonElement
+          || candidate instanceof HTMLAnchorElement
+          || role === 'button'
+          || role === 'menuitem'
+          || role === 'link'
+          || candidate.hasAttribute('onclick')
+          || candidate.getAttribute('tabindex') !== null
+          || style.cursor === 'pointer'
 
-        const className = candidate.getAttribute('class') || ''
+        if (!interactive && !rawHref) continue
+
+        let href = ''
+        if (rawHref) {
+          try {
+            href = new URL(rawHref, location.href).href
+          } catch {
+            href = rawHref
+          }
+        }
 
         return {
           x: Math.round(rect.left + rect.width / 2),
           y: Math.round(rect.top + rect.height / 2),
-          href: normalizeUrl(rawHref),
+          href,
           tag: candidate.tagName.toLowerCase(),
           text: (candidate.textContent || '').trim().slice(0, 80),
-          className,
+          className: candidate.getAttribute('class') || '',
         }
       }
-
-      return null
-    }
-
-    const uses = Array.from(document.querySelectorAll('use')).filter((node) => {
-      return node.getAttribute('xlink:href') === `#${iconId}` || node.getAttribute('href') === `#${iconId}`
-    })
-
-    for (const use of uses) {
-      const target = pickTarget(use)
-      if (target) return target
     }
 
     return null
